@@ -26,6 +26,7 @@ import Profile from './pages/student/Profile'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminCourses from './pages/admin/AdminCourses'
+import AdminCreateUser from './pages/admin/AdminCreateUser'
 
 // Utilitaires
 import NotFound from './pages/NotFound'
@@ -41,6 +42,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/admin/create-user" element={<AdminCreateUser />} />
       </Route>
 
       {/* Pages avec sidebar (connecté) */}
