@@ -1,62 +1,70 @@
 import { Routes, Route } from 'react-router-dom'
-
-// Layouts
+import ProtectedRoute from './components/common/ProtectedRoute'
 import PublicLayout from './components/layout/PublicLayout'
 import DashboardLayout from './components/layout/DashboardLayout'
-
-// Pages publiques
 import Home from './pages/public/Home'
 import Catalogue from './pages/public/Catalogue'
 import CoursePage from './pages/public/CoursePage'
-
-// Auth
 import Login from './pages/auth/Login'
-import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
-
-// Teacher
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import CreateCourse from './pages/teacher/CreateCourse'
 import EditCourse from './pages/teacher/EditCourse'
-
-// Student
 import Profile from './pages/student/Profile'
-
-// Admin
+import StudentDashboard from './pages/student/StudentDashboard'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminCourses from './pages/admin/AdminCourses'
 import AdminCreateUser from './pages/admin/AdminCreateUser'
-
-// Utilitaires
 import NotFound from './pages/NotFound'
 
 function App() {
   return (
     <Routes>
-      {/* Pages publiques */}
+      {/* Pages publiques sans sidebar */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/catalogue" element={<Catalogue />} />
-        <Route path="/cours/:slug" element={<CoursePage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/admin/create-user" element={<AdminCreateUser />} />
       </Route>
 
-      {/* Pages avec sidebar (connecté) */}
-      <Route element={<DashboardLayout />}>
+      {/* Cours — accessible à tous mais avec sidebar si connecté */}
+      <Route path="/cours/:slug" element={<CoursePage />} />
+
+      {/* Pages enseignant */}
+      <Route element={
+        <ProtectedRoute roles={['teacher', 'admin']}>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/create" element={<CreateCourse />} />
         <Route path="/teacher/edit/:id" element={<EditCourse />} />
-        <Route path="/profile" element={<Profile />} />
+      </Route>
+
+      {/* Pages admin */}
+      <Route element={
+        <ProtectedRoute roles={['admin']}>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/courses" element={<AdminCourses />} />
+        <Route path="/admin/create-user" element={<AdminCreateUser />} />
       </Route>
 
-      {/* 404 */}
+      {/* Pages étudiant + profil */}
+      <Route element={
+        <ProtectedRoute roles={['admin', 'teacher', 'student']}>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

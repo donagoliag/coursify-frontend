@@ -1,27 +1,47 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Login() {
+  const { login } = useAuth()
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+    setError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log(form)
+    setLoading(true)
+    setError('')
+    try {
+      const user = await login(form.email, form.password)
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard')
+      } else if (user.role === 'teacher') {
+        navigate('/teacher/dashboard')
+      } else {
+        navigate('/student/dashboard')
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Email ou mot de passe incorrect')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen flex">
-      {/* Partie gauche — formulaire */}
+      {/* Formulaire */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 md:px-16 lg:px-24">
         <div className="max-w-md w-full mx-auto">
 
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-10">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">C</span>
@@ -29,7 +49,6 @@ export default function Login() {
             <span className="font-heading font-bold text-lg text-dark">Coursify</span>
           </Link>
 
-          {/* Titre */}
           <h1 className="font-heading font-extrabold text-3xl text-dark mb-2">
             Bon retour 👋
           </h1>
@@ -37,7 +56,12 @@ export default function Login() {
             Connectez-vous pour accéder à vos cours.
           </p>
 
-          {/* Formulaire */}
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-dark mb-1.5">
@@ -86,29 +110,26 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white py-2.5 font-medium text-sm transition-colors rounded-lg mt-2"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed text-white py-2.5 font-medium text-sm transition-colors rounded-lg mt-2"
             >
-              Se connecter
-              <ArrowRight size={16} />
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  Se connecter
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
-
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="text-primary-600 font-medium hover:underline">
-              S'inscrire
-            </Link>
-          </p>
         </div>
       </div>
 
-      {/* Partie droite — décorative */}
+      {/* Partie droite décorative */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #6B21E8 0%, #9b59f5 100%)',
-        }}
+        style={{ background: 'linear-gradient(135deg, #6B21E8 0%, #9b59f5 100%)' }}
       >
-        {/* Cercles décoratifs */}
         <div className="absolute top-[-80px] right-[-80px] w-96 h-96 rounded-full"
           style={{ background: 'rgba(255,255,255,0.06)' }} />
         <div className="absolute bottom-[-60px] left-[-60px] w-72 h-72 rounded-full"
@@ -121,8 +142,6 @@ export default function Login() {
           <p className="text-violet-200 font-light text-base leading-relaxed max-w-sm mx-auto">
             Des cours en Notebook et Markdown, rendus lisibles et accessibles depuis n'importe quel appareil.
           </p>
-
-          {/* Faux stats */}
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
               { value: '120+', label: 'Cours' },

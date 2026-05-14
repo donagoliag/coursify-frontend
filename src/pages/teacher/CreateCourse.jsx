@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, X, Eye, Globe, Lock, Users } from 'lucide-react'
+import { ArrowLeft, Upload, X, Globe, Lock, Users } from 'lucide-react'
+import api from '../../services/api'
 
 const categories = ['Programmation', 'Data Science', 'Mathématiques', 'Sciences', 'Statistiques', 'Autres']
 
@@ -14,6 +15,8 @@ export default function CreateCourse() {
   const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -21,7 +24,6 @@ export default function CreateCourse() {
     tags: '',
     visibility: 'public',
     allowDownload: true,
-    status: 'draft',
   })
 
   const handleChange = (e) => {
@@ -35,6 +37,8 @@ export default function CreateCourse() {
     const dropped = e.dataTransfer.files[0]
     if (dropped && (dropped.name.endsWith('.ipynb') || dropped.name.endsWith('.md'))) {
       setFile(dropped)
+    } else {
+      setError('Format non supporté. Utilisez .ipynb ou .md')
     }
   }
 
@@ -43,39 +47,59 @@ export default function CreateCourse() {
     if (selected) setFile(selected)
   }
 
-  const handleSubmit = (status) => {
-    console.log({ ...form, status, file })
-    navigate('/teacher/dashboard')
+  const handleSubmit = async (status) => {
+    if (!form.title.trim()) {
+      setError('Le titre est obligatoire')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const formData = new FormData()
+      formData.append('title', form.title)
+      formData.append('description', form.description)
+      formData.append('category', form.category)
+      formData.append('tags', form.tags)
+      formData.append('visibility', form.visibility)
+      formData.append('allow_download', form.allowDownload)
+      formData.append('status', status)
+      if (file) formData.append('file', file)
+
+      await api.post('/api/courses/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      navigate('/teacher/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erreur lors de la création')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link
-          to="/teacher/dashboard"
-          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-        >
+        <Link to="/teacher/dashboard"
+          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="font-heading font-extrabold text-2xl text-dark">
-            Nouveau cours
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Importez votre fichier et configurez votre cours
-          </p>
+          <h1 className="font-heading font-extrabold text-2xl text-dark">Nouveau cours</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Importez votre fichier et configurez votre cours</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6">
 
         {/* Upload fichier */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-heading font-bold text-base text-dark mb-4">
-            Fichier du cours
-          </h2>
-
+          <h2 className="font-heading font-bold text-base text-dark mb-4">Fichier du cours</h2>
           {!file ? (
             <div
               onDrop={handleDrop}
@@ -90,12 +114,8 @@ export default function CreateCourse() {
               <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Upload size={22} className="text-primary-600" />
               </div>
-              <p className="text-sm font-medium text-dark mb-1">
-                Glissez votre fichier ici
-              </p>
-              <p className="text-xs text-gray-400 mb-4">
-                Formats acceptés : .ipynb, .md
-              </p>
+              <p className="text-sm font-medium text-dark mb-1">Glissez votre fichier ici</p>
+              <p className="text-xs text-gray-400 mb-4">Formats acceptés : .ipynb, .md</p>
               <label className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors">
                 <Upload size={14} />
                 Sélectionner un fichier
@@ -111,13 +131,13 @@ export default function CreateCourse() {
             <div className="flex items-center justify-between bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
-                  <Eye size={16} className="text-primary-600" />
+                  <span className="text-xs font-bold text-primary-600 uppercase">
+                    {file.name.split('.').pop()}
+                  </span>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-dark">{file.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {(file.size / 1024).toFixed(1)} Ko
-                  </p>
+                  <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} Ko</p>
                 </div>
               </div>
               <button
@@ -132,13 +152,11 @@ export default function CreateCourse() {
 
         {/* Métadonnées */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-heading font-bold text-base text-dark mb-4">
-            Informations du cours
-          </h2>
+          <h2 className="font-heading font-bold text-base text-dark mb-4">Informations du cours</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-dark mb-1.5">
-                Titre du cours <span className="text-red-400">*</span>
+                Titre <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -146,34 +164,28 @@ export default function CreateCourse() {
                 value={form.title}
                 onChange={handleChange}
                 placeholder="Ex: Introduction à Python"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-dark placeholder-gray-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-dark mb-1.5">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-dark mb-1.5">Description</label>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                placeholder="Décrivez brièvement le contenu de ce cours..."
+                placeholder="Décrivez brièvement le contenu..."
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-dark placeholder-gray-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all resize-none"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all resize-none"
               />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-dark mb-1.5">
-                  Catégorie <span className="text-red-400">*</span>
-                </label>
+                <label className="block text-sm font-medium text-dark mb-1.5">Catégorie</label>
                 <select
                   name="category"
                   value={form.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-dark focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all bg-white"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all bg-white"
                 >
                   <option value="">Choisir une catégorie</option>
                   {categories.map((cat) => (
@@ -181,20 +193,17 @@ export default function CreateCourse() {
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-dark mb-1.5">
-                  Tags
-                </label>
+                <label className="block text-sm font-medium text-dark mb-1.5">Tags</label>
                 <input
                   type="text"
                   name="tags"
                   value={form.tags}
                   onChange={handleChange}
                   placeholder="python, débutant, tp..."
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-dark placeholder-gray-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
                 />
-                <p className="text-xs text-gray-400 mt-1">Séparez les tags par des virgules</p>
+                <p className="text-xs text-gray-400 mt-1">Séparez par des virgules</p>
               </div>
             </div>
           </div>
@@ -202,9 +211,7 @@ export default function CreateCourse() {
 
         {/* Visibilité */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-heading font-bold text-base text-dark mb-4">
-            Visibilité
-          </h2>
+          <h2 className="font-heading font-bold text-base text-dark mb-4">Visibilité</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {visibilityOptions.map((opt) => {
               const Icon = opt.icon
@@ -219,10 +226,7 @@ export default function CreateCourse() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <Icon
-                    size={18}
-                    className={form.visibility === opt.value ? 'text-primary-600 mb-2' : 'text-gray-400 mb-2'}
-                  />
+                  <Icon size={18} className={form.visibility === opt.value ? 'text-primary-600 mb-2' : 'text-gray-400 mb-2'} />
                   <p className={`text-sm font-medium ${form.visibility === opt.value ? 'text-primary-600' : 'text-dark'}`}>
                     {opt.label}
                   </p>
@@ -231,7 +235,6 @@ export default function CreateCourse() {
               )
             })}
           </div>
-
           <div className="mt-4 flex items-center gap-3">
             <input
               type="checkbox"
@@ -249,23 +252,26 @@ export default function CreateCourse() {
 
         {/* Actions */}
         <div className="flex items-center justify-between pb-8">
-          <Link
-            to="/teacher/dashboard"
-            className="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-          >
+          <Link to="/teacher/dashboard"
+            className="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
             Annuler
           </Link>
           <div className="flex gap-3">
             <button
               onClick={() => handleSubmit('draft')}
-              className="px-4 py-2.5 border border-primary-200 text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors"
+              disabled={loading}
+              className="px-4 py-2.5 border border-primary-200 text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors disabled:opacity-50"
             >
               Enregistrer en brouillon
             </button>
             <button
               onClick={() => handleSubmit('published')}
-              className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+              disabled={loading}
+              className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
             >
+              {loading && (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
               Publier le cours
             </button>
           </div>

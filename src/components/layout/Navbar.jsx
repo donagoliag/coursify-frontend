@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom'
-import { BookOpen, LogIn } from 'lucide-react'
+import { BookOpen, LogIn, LogOut, Home } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Navbar() {
+  const auth = useAuth()
+  const user = auth?.user
+
   return (
     <nav className="sticky top-0 z-50 px-6 md:px-16 py-4 flex items-center justify-between"
       style={{
@@ -11,7 +15,7 @@ export default function Navbar() {
         borderBottom: '1px solid rgba(107, 33, 232, 0.08)',
       }}
     >
-      {/* Logo */}
+      {/* Logo gauche */}
       <Link to="/" className="flex items-center gap-2">
         <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">C</span>
@@ -21,6 +25,11 @@ export default function Navbar() {
 
       {/* Liens centre */}
       <div className="hidden md:flex items-center gap-6">
+        <Link to="/"
+          className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 transition-colors text-sm font-medium">
+          <Home size={15} />
+          Accueil
+        </Link>
         <Link to="/catalogue"
           className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 transition-colors text-sm font-medium">
           <BookOpen size={15} />
@@ -28,15 +37,30 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* Actions droite */}
+      {/* Droite */}
       <div className="flex items-center gap-3">
-        <Link to="/login"
-          className="flex items-center gap-1.5 text-sm font-medium text-primary-600 border border-primary-200 px-4 py-2 hover:bg-primary-50 transition-colors"
-          style={{ borderRadius: '8px' }}
-        >
-          <LogIn size={14} />
-          Connexion
-        </Link>
+        {user ? (
+          <>
+            <span className="text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg hidden sm:inline">
+              {user.first_name} {user.last_name}
+            </span>
+            <button
+              onClick={() => auth.logout()}
+              className="flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <LogOut size={14} />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
+          </>
+        ) : (
+          <Link to="/login"
+            className="flex items-center gap-1.5 text-sm font-medium text-primary-600 border border-primary-200 px-4 py-2 hover:bg-primary-50 transition-colors"
+            style={{ borderRadius: '8px' }}
+          >
+            <LogIn size={14} />
+            Connexion
+          </Link>
+        )}
       </div>
     </nav>
   )

@@ -3,6 +3,7 @@ import {
   LayoutDashboard, BookOpen, PlusCircle,
   Users, Settings, LogOut, Shield, FileText
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const teacherMenu = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher/dashboard' },
@@ -11,6 +12,7 @@ const teacherMenu = [
 ]
 
 const studentMenu = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
   { icon: BookOpen, label: 'Catalogue', path: '/catalogue' },
   { icon: FileText, label: 'Mon profil', path: '/profile' },
 ]
@@ -24,8 +26,13 @@ const adminMenu = [
 
 export default function Sidebar({ role = 'student' }) {
   const location = useLocation()
+  const { logout } = useAuth()
 
-  const menu = role === 'teacher' ? teacherMenu : role === 'admin' ? adminMenu : studentMenu
+  const menu = role === 'teacher'
+    ? teacherMenu
+    : role === 'admin'
+    ? adminMenu
+    : studentMenu
 
   return (
     <aside className="w-64 bg-white border-r border-gray-100 min-h-screen fixed left-0 top-0 flex flex-col">
@@ -36,10 +43,7 @@ export default function Sidebar({ role = 'student' }) {
           </div>
           <span className="font-heading font-bold text-lg text-dark">Coursify</span>
         </Link>
-
-        {/* Badge rôle */}
-        <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-          bg-primary-50 text-primary-600">
+        <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-600">
           {role === 'teacher' ? '👨‍🏫 Enseignant' : role === 'admin' ? '🛡️ Admin' : '👨‍🎓 Étudiant'}
         </div>
       </div>
@@ -66,12 +70,17 @@ export default function Sidebar({ role = 'student' }) {
       </nav>
 
       <div className="p-4 border-t border-gray-100 space-y-1">
-        <Link to="/profile"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+        <Link
+          to="/profile"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+        >
           <Settings size={18} />
           Profil
         </Link>
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+        >
           <LogOut size={18} />
           Déconnexion
         </button>
