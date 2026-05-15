@@ -25,12 +25,20 @@ function CourseCard({ course }) {
         {course.description || 'Aucune description disponible.'}
       </p>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">
+        <p className="text-sm text-gray-500">
           {course.author?.first_name} {course.author?.last_name}
         </p>
         <span className="text-xs font-medium text-primary-600 flex items-center gap-1">
           Lire <ArrowRight size={11} />
         </span>
+      </div>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+        <Link
+          to={'/cours/' + course.slug}
+          className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1 transition-colors"
+        >
+          Lire <ArrowRight size={11} />
+        </Link>
       </div>
     </Link>
   )

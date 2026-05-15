@@ -13,7 +13,7 @@ const teacherMenu = [
 
 const studentMenu = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
-  { icon: BookOpen, label: 'Catalogue', path: '/catalogue' },
+  { icon: BookOpen, label: 'Cours', path: '/cours' },
   { icon: FileText, label: 'Mon profil', path: '/profile' },
 ]
 

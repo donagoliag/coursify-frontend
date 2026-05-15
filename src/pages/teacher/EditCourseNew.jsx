@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, X } from 'lucide-react'
 import Step1Info from './steps/Step1Info'
 import Step2Visibility from './steps/Step2Visibility'
@@ -16,65 +16,52 @@ const STEPS = [
   { number: 5, label: 'Aperçu final' },
 ]
 
-const INITIAL_DATA = {
-  title: '',
-  description: '',
-  category: '',
-  tags: '',
-  visibility: 'public',
-  allow_download: true,
-  fileType: null, // 'markdown' | 'notebook' | 'upload'
-  markdownContent: '',
-  notebookCells: [{ id: 1, type: 'markdown', content: '' }],
-  uploadedFile: null,
-  status: 'draft',
-}
-
-export default function CreateCourse() {
+export default function EditCourseNew() {
+  const { id } = useParams()
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
-  const [data, setData] = useState(() => {
-    const saved = sessionStorage.getItem('coursify_draft')
-    return saved ? JSON.parse(saved) : INITIAL_DATA
-  })
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [data, setData] = useState(null)
 
-  // Sauvegarde automatique dans sessionStorage
   useEffect(() => {
-    const toSave = { ...data, uploadedFile: null }
-    sessionStorage.setItem('coursify_draft', JSON.stringify(toSave))
-  }, [data])
+    api.get('/api/courses/my-courses').then((res) => {
+      const course = res.data.find((c) => c.id === parseInt(id))
+      if (course) {
+        setData({
+          title: course.title || '',
+          description: course.description || '',
+          category: course.category || '',
+          tags: course.tags || '',
+          visibility: course.visibility || 'public',
+          allow_download: course.allow_download,
+          fileType: course.file_type === 'upload' ? 'upload' : course.file_type === 'ipynb' ? 'notebook' : 'markdown',
+          markdownContent: course.file_type === 'md' ? (course.html_content || '') : '',
+          notebookCells: course.file_type === 'ipynb'
+            ? [{ id: 1, type: 'markdown', content: course.html_content || '' }]
+            : [{ id: 1, type: 'markdown', content: '' }],
+          uploadedFile: null,
+          status: course.status || 'draft',
+          courseId: course.id,
+        })
+      }
+    }).catch(() => setError('Erreur de chargement'))
+    .finally(() => setLoading(false))
+  }, [id])
 
   const updateData = (fields) => {
     setData((prev) => ({ ...prev, ...fields }))
   }
 
-  const handleNext = () => {
-    if (currentStep < 5) setCurrentStep(currentStep + 1)
-  }
-
-  const handlePrev = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
-
-  const handleCancel = () => {
-    sessionStorage.removeItem('coursify_draft')
-    navigate('/teacher/dashboard')
-  }
+  const handleCancel = () => navigate('/teacher/dashboard')
 
   const handleSaveDraft = async () => {
-    if (!data.title.trim()) {
-      setError('Le titre est obligatoire pour sauvegarder')
-      return
-    }
     setSaving(true)
-    setError('')
     try {
       await submitCourse('draft')
-      setError('')
       alert('Brouillon sauvegardé !')
-    } catch (e) {
+    } catch {
       setError('Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
@@ -91,9 +78,8 @@ export default function CreateCourse() {
     formData.append('allow_download', data.allow_download)
     formData.append('status', status)
     formData.append('source_type', data.fileType === 'upload' ? 'upload' : 'editor')
-    
 
-    if (data.fileType === 'markdown') {
+    if (data.fileType === 'markdown' && data.markdownContent) {
       const blob = new Blob([data.markdownContent], { type: 'text/plain' })
       formData.append('file', blob, 'cours.md')
     } else if (data.fileType === 'notebook') {
@@ -115,23 +101,18 @@ export default function CreateCourse() {
       formData.append('file', data.uploadedFile)
     }
 
-    await api.post('/api/courses/', formData, {
+    await api.put('/api/courses/' + id + '/full', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    sessionStorage.removeItem('coursify_draft')
   }
 
   const handlePublish = async () => {
-    if (!data.title.trim()) {
-      setError('Le titre est obligatoire')
-      return
-    }
     setSaving(true)
     setError('')
     try {
       await submitCourse('published')
       navigate('/teacher/dashboard')
-    } catch (e) {
+    } catch {
       setError('Erreur lors de la publication')
     } finally {
       setSaving(false)
@@ -139,28 +120,31 @@ export default function CreateCourse() {
   }
 
   const canGoNext = () => {
-    if (currentStep === 1) return data.title.trim() !== ''
-    if (currentStep === 3) return data.fileType !== null
+    if (currentStep === 1) return data?.title?.trim() !== ''
+    if (currentStep === 3) return data?.fileType !== null
     return true
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!data) return null
+
   return (
     <div className="max-w-4xl mx-auto">
-
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button
-            onClick={handleCancel}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-          >
+          <button onClick={handleCancel} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
             <X size={18} />
           </button>
           <div>
-            <h1 className="font-heading font-extrabold text-2xl text-dark">Nouveau cours</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              Étape {currentStep} sur {STEPS.length}
-            </p>
+            <h1 className="font-heading font-extrabold text-2xl text-dark">Modifier le cours</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Étape {currentStep} sur {STEPS.length}</p>
           </div>
         </div>
         <button
@@ -211,27 +195,20 @@ export default function CreateCourse() {
         </div>
       )}
 
-      {/* Contenu de l'étape */}
       <div className="mb-8">
         {currentStep === 1 && <Step1Info data={data} updateData={updateData} />}
         {currentStep === 2 && <Step2Visibility data={data} updateData={updateData} />}
         {currentStep === 3 && <Step3FileType data={data} updateData={updateData} />}
         {currentStep === 4 && <Step4Editor data={data} updateData={updateData} />}
         {currentStep === 5 && (
-          <Step5Preview
-            data={data}
-            onPublish={handlePublish}
-            onBack={handlePrev}
-            saving={saving}
-          />
+          <Step5Preview data={data} onPublish={handlePublish} onBack={() => setCurrentStep(4)} saving={saving} />
         )}
       </div>
 
-      {/* Navigation */}
       {currentStep < 5 && (
         <div className="flex items-center justify-between pb-8">
           <button
-            onClick={handlePrev}
+            onClick={() => setCurrentStep(currentStep - 1)}
             disabled={currentStep === 1}
             className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
@@ -239,7 +216,7 @@ export default function CreateCourse() {
             Précédent
           </button>
           <button
-            onClick={handleNext}
+            onClick={() => setCurrentStep(currentStep + 1)}
             disabled={!canGoNext()}
             className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >

@@ -9,7 +9,7 @@ import Login from './pages/auth/Login'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import CreateCourse from './pages/teacher/CreateCourse'
-import EditCourse from './pages/teacher/EditCourse'
+//import EditCourse from './pages/teacher/EditCourse'
 import Profile from './pages/student/Profile'
 import StudentDashboard from './pages/student/StudentDashboard'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -17,6 +17,8 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminCourses from './pages/admin/AdminCourses'
 import AdminCreateUser from './pages/admin/AdminCreateUser'
 import NotFound from './pages/NotFound'
+import EditCourseNew from './pages/teacher/EditCourseNew'
+import StudentCourses from './pages/student/StudentCourses'
 
 function App() {
   return (
@@ -40,7 +42,7 @@ function App() {
       }>
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/create" element={<CreateCourse />} />
-        <Route path="/teacher/edit/:id" element={<EditCourse />} />
+        <Route path="/teacher/edit/:id" element={<EditCourseNew />} />
       </Route>
 
       {/* Pages admin */}
@@ -63,6 +65,7 @@ function App() {
       }>
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/cours" element={<StudentCourses />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

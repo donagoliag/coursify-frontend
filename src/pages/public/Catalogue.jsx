@@ -39,6 +39,7 @@ function CourseCard({ course }) {
           Lire <ArrowRight size={11} />
         </span>
       </div>
+      
     </Link>
   )
 }

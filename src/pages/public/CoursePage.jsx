@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Eye, User, Tag, Copy, Check, Menu, X } from 'lucide-react'
+import { ArrowLeft, Download, Eye, User, Tag, Copy, Check, Menu, X, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import { exportToPdf } from '../../utils/exportPdf'
 
 function CodeBlock({ children }) {
   const [copied, setCopied] = useState(false)
@@ -114,7 +117,7 @@ export default function CoursePage() {
     )
   }
 
-  const isHTML = course.file_type === 'ipynb'
+  const isHTML = course.file_type === 'ipynb' || course.file_type === 'md'
 
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
@@ -229,52 +232,58 @@ export default function CoursePage() {
           <hr className="border-gray-100 mb-8" />
 
           {/* Contenu du cours */}
-          {course.html_content ? (
-            isHTML ? (
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: course.html_content }}
-              />
-            ) : (
-              <div className="prose prose-sm max-w-none
-                prose-headings:font-heading prose-headings:text-dark
-                prose-h1:text-3xl prose-h1:font-extrabold
-                prose-h2:text-xl prose-h2:font-bold prose-h2:mt-10
-                prose-h3:text-base prose-h3:font-semibold
-                prose-p:text-gray-600 prose-p:leading-relaxed prose-p:text-sm
-                prose-a:text-primary-600
-                prose-strong:text-dark
-                prose-code:text-primary-700 prose-code:bg-primary-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-                prose-pre:bg-transparent prose-pre:p-0
-              ">
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    code: (props) => {
-                      const { children, className } = props
-                      const isBlock = className && className.includes('language-')
-                      if (isBlock) {
-                        return <CodeBlock>{children}</CodeBlock>
-                      }
-                      return (
-                        <code className="text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded text-xs">
-                          {children}
-                        </code>
-                      )
-                    },
-                  }}
-                >
-                  {course.html_content}
-                </ReactMarkdown>
+          {course.file_type === 'upload' ? (
+          <div className="text-center py-20">
+            <div className="inline-flex flex-col items-center gap-4">
+              <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center">
+                <FileText size={32} className="text-primary-600" />
               </div>
-            )
-          ) : (
-            <div className="text-center py-20">
-              <p className="text-4xl mb-4">📄</p>
-              <p className="text-gray-500 text-sm">Aucun contenu disponible pour ce cours.</p>
+              <div>
+                <p className="font-heading font-bold text-lg text-dark mb-1">
+                  Fichier disponible au téléchargement
+                </p>
+                <p className="text-gray-400 text-sm max-w-sm mx-auto">
+                  Ce cours est disponible sous forme de fichier à télécharger.
+                </p>
+              </div>
+              {course.allow_download && (
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Download size={16} />
+                  Télécharger le fichier
+                </button>
+              )}
             </div>
-          )}
+          </div>
+        ) : course.html_content ? (
+          <div
+            id="course-content"
+            className="prose prose-sm max-w-none
+              prose-headings:font-heading prose-headings:text-dark
+              prose-h1:text-3xl prose-h1:font-extrabold prose-h1:mb-6
+              prose-h2:text-xl prose-h2:font-bold prose-h2:mt-10 prose-h2:mb-4
+              prose-h3:text-base prose-h3:font-semibold prose-h3:mt-6
+              prose-p:text-gray-600 prose-p:leading-relaxed prose-p:text-sm
+              prose-a:text-primary-600
+              prose-strong:text-dark
+              prose-ul:text-gray-600 prose-ol:text-gray-600
+              prose-li:text-sm prose-li:leading-relaxed
+              prose-code:text-primary-700 prose-code:bg-primary-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+              prose-pre:bg-gray-900 prose-pre:rounded-xl prose-pre:p-4
+              prose-blockquote:border-l-4 prose-blockquote:border-primary-300 prose-blockquote:bg-primary-50 prose-blockquote:rounded-r-xl
+              prose-table:text-sm prose-th:bg-gray-50 prose-th:font-semibold
+              prose-img:rounded-xl
+            "
+            dangerouslySetInnerHTML={{ __html: course.html_content }}
+          />
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-4xl mb-4">📄</p>
+            <p className="text-gray-500 text-sm">Aucun contenu disponible.</p>
+          </div>
+        )} 
         </main>
 
         {/* Sidebar droite */}
@@ -304,14 +313,21 @@ export default function CoursePage() {
           </div>
 
           {course.allow_download && course.file_path && (
-            <button
-              onClick={handleDownload}
-              className="mt-6 w-full flex items-center justify-center gap-2 border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors py-2.5 rounded-lg text-sm font-medium"
-            >
-              <Download size={15} />
-              Télécharger le source
-            </button>
+              <button
+                onClick={handleDownload}
+                className="mt-6 w-full flex items-center justify-center gap-2 border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors py-2.5 rounded-lg text-sm font-medium"
+              >
+                <Download size={15} />
+                Télécharger le source
+              </button>
           )}
+          <button
+            onClick={() => exportToPdf('course-content', course.slug + '.pdf')}
+            className="mt-3 w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors py-2.5 rounded-lg text-sm font-medium"
+          >
+            <FileText size={15} />
+            Exporter en PDF
+          </button>
 
           <div className="mt-6">
             <div className="flex items-center justify-between mb-2">
