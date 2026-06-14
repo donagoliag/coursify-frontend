@@ -79,21 +79,37 @@ export default function CoursePage() {
   }, [])
 
   const handleDownload = async () => {
-    try {
-      const res = await api.get('/api/courses/' + course.id + '/download', {
-        responseType: 'blob'
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', course.slug + '.' + course.file_type)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch {
-      alert('Téléchargement non autorisé')
+  try {
+    const res = await api.get('/api/courses/' + course.id + '/download', {
+      responseType: 'blob'
+    })
+    
+    // Récupérer le nom du fichier depuis les headers si disponible
+    const contentDisposition = res.headers['content-disposition']
+    let filename = course.slug
+    
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="(.+)"/)
+      if (match) filename = match[1]
+    } else {
+      // Fallback sur le type
+      if (course.file_type === 'ipynb') filename = course.slug + '.ipynb'
+      else if (course.file_type === 'md') filename = course.slug + '.md'
+      else filename = course.slug + '.' + course.file_type
     }
+    
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch {
+    alert('Erreur lors du téléchargement')
   }
+}
 
   if (loading) {
     return (
@@ -232,58 +248,48 @@ export default function CoursePage() {
           <hr className="border-gray-100 mb-8" />
 
           {/* Contenu du cours */}
-          {course.file_type === 'upload' ? (
-          <div className="text-center py-20">
-            <div className="inline-flex flex-col items-center gap-4">
-              <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center">
-                <FileText size={32} className="text-primary-600" />
+          {/* Contenu du cours */}
+          {!course.html_content && course.file_path ? (
+            <div className="text-center py-20">
+              <div className="inline-flex flex-col items-center gap-4">
+                <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center">
+                  <FileText size={32} className="text-primary-600" />
+                </div>
+                <div>
+                  <p className="font-heading font-bold text-lg text-dark mb-1">
+                    Fichier disponible au téléchargement
+                  </p>
+                  <p className="text-gray-400 text-sm max-w-sm mx-auto">
+                    Ce cours est disponible sous forme de fichier à télécharger.
+                  </p>
+                </div>
+                {course.allow_download && (
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
+                  >
+                    <Download size={16} />
+                    Télécharger le fichier
+                  </button>
+                )}
               </div>
-              <div>
-                <p className="font-heading font-bold text-lg text-dark mb-1">
-                  Fichier disponible au téléchargement
-                </p>
-                <p className="text-gray-400 text-sm max-w-sm mx-auto">
-                  Ce cours est disponible sous forme de fichier à télécharger.
-                </p>
-              </div>
-              {course.allow_download && (
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
-                >
-                  <Download size={16} />
-                  Télécharger le fichier
-                </button>
-              )}
             </div>
-          </div>
-        ) : course.html_content ? (
-          <div
-            id="course-content"
-            className="prose prose-sm max-w-none
-              prose-headings:font-heading prose-headings:text-dark
-              prose-h1:text-3xl prose-h1:font-extrabold prose-h1:mb-6
-              prose-h2:text-xl prose-h2:font-bold prose-h2:mt-10 prose-h2:mb-4
-              prose-h3:text-base prose-h3:font-semibold prose-h3:mt-6
-              prose-p:text-gray-600 prose-p:leading-relaxed prose-p:text-sm
-              prose-a:text-primary-600
-              prose-strong:text-dark
-              prose-ul:text-gray-600 prose-ol:text-gray-600
-              prose-li:text-sm prose-li:leading-relaxed
-              prose-code:text-primary-700 prose-code:bg-primary-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-              prose-pre:bg-gray-900 prose-pre:rounded-xl prose-pre:p-4
-              prose-blockquote:border-l-4 prose-blockquote:border-primary-300 prose-blockquote:bg-primary-50 prose-blockquote:rounded-r-xl
-              prose-table:text-sm prose-th:bg-gray-50 prose-th:font-semibold
-              prose-img:rounded-xl
-            "
-            dangerouslySetInnerHTML={{ __html: course.html_content }}
-          />
-        ) : (
-          <div className="text-center py-20">
-            <p className="text-4xl mb-4">📄</p>
-            <p className="text-gray-500 text-sm">Aucun contenu disponible.</p>
-          </div>
-        )} 
+          ) : course.html_content ? (
+            <div
+              id="course-content"
+              className="prose prose-sm max-w-none prose-headings:font-heading prose-headings:text-dark prose-h1:text-3xl prose-h1:font-extrabold prose-h1:mb-6 prose-h2:text-xl prose-h2:font-bold prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:font-semibold prose-h3:mt-6 prose-p:text-gray-600 prose-p:leading-relaxed prose-p:text-sm prose-a:text-primary-600 prose-strong:text-dark prose-ul:text-gray-600 prose-ol:text-gray-600 prose-li:text-sm prose-li:leading-relaxed prose-code:text-primary-700 prose-code:bg-primary-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-gray-900 prose-pre:rounded-xl prose-pre:p-4 prose-blockquote:border-l-4 prose-blockquote:border-primary-300 prose-blockquote:bg-primary-50 prose-blockquote:rounded-r-xl prose-table:text-sm prose-th:bg-gray-50 prose-th:font-semibold prose-img:rounded-xl"
+              style={{
+                '--jp-content-font-color1': '#374151',
+                '--jp-content-font-color2': '#6b7280',
+              }}
+              dangerouslySetInnerHTML={{ __html: course.html_content }}
+            />
+          ) : (
+            <div className="text-center py-20">
+              <p className="text-4xl mb-4">📄</p>
+              <p className="text-gray-500 text-sm">Aucun contenu disponible.</p>
+            </div>
+          )}
         </main>
 
         {/* Sidebar droite */}

@@ -19,3 +19,22 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif;
 }
+
+.jp-OutputArea-output pre,
+.jp-OutputArea-output,
+.jp-RenderedText pre,
+.jp-RenderedText,
+.jp-Cell-outputWrapper,
+.jp-OutputArea-child {
+  background: #ffffff !important;
+  color: #374151 !important;
+}
+
+.jp-RenderedHTMLCommon {
+  color: #374151 !important;
+}
+
+.jp-RenderedHTMLCommon p,
+.jp-RenderedHTMLCommon li {
+  color: #4b5563 !important;
+}
