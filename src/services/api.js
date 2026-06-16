@@ -1,13 +1,14 @@
 import axios from 'axios'
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001'
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8001',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Interceptor request — ajoute le token automatiquement
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
@@ -16,7 +17,6 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Interceptor response — gère l'expiration du token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -27,7 +27,7 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           const res = await axios.post(
-            'http://127.0.0.1:8001/api/users/refresh-token',
+            BASE_URL + '/api/users/refresh-token',
             { refresh_token: refreshToken }
           )
           const newToken = res.data.access_token
